@@ -1,0 +1,32 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    env:
+      TF_CPP_MIN_LOG_LEVEL: '2'
+      TF_ENABLE_ONEDNN_OPTS: '0'
+      CUDA_VISIBLE_DEVICES: '-1'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements-lock.txt
+      - name: Install tested environment
+        run: python -m pip install -r requirements-lock.txt
+      - name: Check source quality
+        run: |
+          python -m ruff check transport tests scripts
+          python -m ruff format --check transport tests scripts
+      - name: Test splits, training and saved-model inference
+        run: python -m pytest -q
+      - name: Execute current notebooks
+        run: python scripts/check_notebooks.py
